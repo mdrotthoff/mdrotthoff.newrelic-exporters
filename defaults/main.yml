@@ -1,0 +1,21 @@
+---
+#newrelic_exporter_account_id: YOUR_ACCOUNT_ID
+#newrelic_exporter_api_key: YOUR_API_KEY
+#newrelic_exporter_proxy: "<Proxy server used to access New Relic>"
+
+#newrelic_exporter_supplemental_packages:
+#  - nagios-plugins-ping
+#  - nagios-plugins-tcp
+#  - nagios-plugins-oracle
+
+# New Relic exporters to install
+#newrelic_exporter_apps:
+#  - nri-elasticsearch
+#  - nri-nagios
+#  - nri-oracledb
+
+newrelic_exporter_app_local_path: "/usr/local/lib64/newrelic"
+newrelic_exporter_app_local_owner: root
+newrelic_exporter_app_local_group: root
+newrelic_exporter_app_local_mode: 0755
+newrelic_exporter_app_local_src: files

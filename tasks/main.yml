@@ -1,0 +1,50 @@
+---
+# $Author$
+# $Date$
+# $Source$
+
+
+##############################################
+# New Relic Exporters installation role #
+##############################################
+
+- name: Dump the variables / facts known by Ansible for the New Relic Exporters role
+  include_role:
+    name: mdrotthoff.ansible-debug
+
+- name: Install the supplemental packages required by the New Relic exporters
+  yum:
+    name: "{{ newrelic_exporter__supplemental_packages }}"
+    state: "{{ newrelic_exporter__package_state }}"
+  when:
+    - newrelic_exporter_supplemental_packages is defined 
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Ensure the New Relic exporters directory exists
+  file:
+    path: "{{ newrelic_exporter_app_local_path }}"
+    state: directory
+    owner: "{{ newrelic_exporter_app_local_owner }}"
+    group: "{{ newrelic_exporter_app_local_group }}"
+    mode: "{{ newrelic_exporter_app_local_mode }}"
+
+
+#- name: Install New Relic exporters
+#  include_tasks: "{{ item }}.yml"
+#  loop: "{{ newrelic_infra_plugins }}"
+#  when:
+#    - newrelic_infra_plugins is defined
+
+- name: Build the local check on the New Relic server from a template
+  template:
+    src: "{{ exporter_app }}.j2"
+    dest: "{{ newrelic_exporter_local_path }}/{{ exporter_app }}"
+    owner: "{{ newrelic_exporter_app_local_owner }}"
+    group: "{{ newrelic_exporter_app_local_group }}"
+    mode: 0700
+  loop: "{{ newrelic_exporter_apps }}"
+  loop_control:
+    loop_var: exporter_app
+  when:
+    - newrelic_exporter_apps is defined
+    - newrelic_exporter_apps | length > 0

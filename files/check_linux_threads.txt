@@ -1,0 +1,54 @@
+#! /bin/env bash
+export https_proxy=""
+newrelic_api_key=""
+newrelic_account_id=""
+host_name="$(hostname)"
+time_stamp="$(date "+%s")"
+chunk_size=900
+
+process_mapfile() {
+  start_loop=$1
+  end_loop=$2
+  while [ ${start_loop} -le ${end_loop} ] ; do
+    echo "   ${MAPFILE[${start_loop}]}"
+    ((start_loop++))
+  done
+}
+
+
+mapfile -O 1 -s 2 -t < <(ps -eLF | \
+                         awk '{print $1" "$2" "$3" "$6" "$13}')
+entry=1
+while [ $entry -le ${#MAPFILE[@]} ] ; do
+  end_loop=$((entry + chunk_size))
+  ((end_loop--))
+
+  if [ ${end_loop} -gt ${#MAPFILE[@]} ] ; then
+    end_loop=${#MAPFILE[@]}
+  fi
+
+  echo "Start loop: ${entry}  End loop: ${end_loop}"
+  process_mapfile ${entry} ${end_loop} | \
+    awk -v host_name="${host_name}" \
+        -v time_stamp="${time_stamp}" \
+        ' BEGIN { print "[" ; }
+          { print  " {" ;
+            print  "   \"eventType\" : \"osProcessThreadCount\"," ;
+            print  "   \"timestamp\" : \""time_stamp"\"," ;
+            print  "   \"hostname\" : \""host_name"\"," ;
+            print  "   \"userName\" : \""$1"\"," ;
+            print  "   \"processId\" : "$2"," ;
+            print  "   \"parentProcessId\" : "$3"," ;
+            print  "   \"threadCount\" : "$4"" ;
+            print  "   \"commandLine\" : \""$5"\"," ;
+            print  " }," ;
+          }
+          END { print "]" } ' \
+    gzip -c | \
+    curl -X POST \
+         -H "Content-Type: application/json" \
+         -H "Content-Encoding: gzip" \
+         -H "X-Insert-Key: ${newrelic_api_key}" \
+         https://insights-collector.newrelic.com/v1/accounts/${newrelic_account_id}/events --data-binary @-
+  entry=$((end_loop + 1))
+done
